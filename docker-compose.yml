@@ -1,0 +1,137 @@
+services:
+  # Service Registry
+  service-registry:
+    build:
+      context: ./microservice-service-registry
+      dockerfile: Dockerfile.yml
+    container_name: service-registry
+    ports:
+      - "8761:8761"
+    # depends_on:
+    #   - config-server
+    networks:
+      - backend
+
+  # User Service
+  user-service:
+    build:
+      context: ./microservice-user-service
+      dockerfile: /Users/niteshwayafalkar/Desktop/Coding/Microservices/microservice-user-service/dockerfile/Dockerfile.yml
+    container_name: user-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/user_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    depends_on:
+      - mysql
+      - service-registry
+    volumes:
+      - ./user-service:/usr/src/app
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+
+  # Hotel Service
+  hotel-service:
+    build:
+      context: ./microservice-hotel-service
+      dockerfile: ./Dockerfile.yml
+    container_name: hotel-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/hotel_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    depends_on:
+      - postgres
+      - service-registry
+    volumes:
+      - ./hotel-service:/usr/src/app
+    ports:
+      - "8082:8082"
+    networks:
+      - backend
+
+  # Ratings Service
+  ratings-service:
+    build:
+      context: ./microservice-ratings-service
+      dockerfile: ./Dockerfile.yml
+    container_name: ratings-service
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/ratings_db
+    depends_on:
+      - mongodb
+      - service-registry
+    volumes:
+      - ./ratings-service:/usr/src/app
+    ports:
+      - "8083:8083"
+    networks:
+      - backend
+
+  # Config Server
+  config-server:
+    build:
+      context: ./microservice-config-server
+      dockerfile: ./Dockerfile.yml
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - backend
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./microservice-api-gateway
+      dockerfile: ./Dockerfile.yml
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+
+  # MySQL Database for User Service
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: user_db
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+
+  # MongoDB Database for Ratings Service
+  mongodb:
+    image: mongo:latest
+    container_name: mongo
+    volumes:
+      - ./mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  # PostgreSQL Database for Hotel Service
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: hotel_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
